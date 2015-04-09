@@ -1,8 +1,5 @@
-#!/usr/bin/env python3
 import serial
 import logging
-import traceback
-import signal
 import time
 
 
@@ -11,12 +8,7 @@ class EBusDaemon():
     in_sync = False
 
     def __init__(self):
-        # catch terminations for logging purposes
-        signal.signal(signal.SIGTERM, cb_signal_handler)
-        
-        self._init_port()
-        
-    def _init_port(self):
+        # init port
         self.port = serial.Serial()
         self.port.port = '/dev/ttyUSB0'
         self.port.baudrate = 2400
@@ -129,35 +121,3 @@ class EBusDaemon():
                 byte = byte << 1
 
         return crc
-
-
-    def process(self):
-        while True:
-            data = self._read_line()
-
-        
-def cb_signal_handler(received_signal, frame):
-    """handles keyboard interrupts and exits execution."""
-    logging.warning("Exiting with signal {}.\n".format(received_signal))
-    exit()
-
-
-def main():
-    """entry point if called as an executable"""
-    ebd = EBusDaemon()
-    
-    # setup logger
-    logging.basicConfig(level=logging.DEBUG, format='%(asctime)s %(message)s')
-
-    # endless loop is only a safety measure if sensor daemon aborts with an exception
-    while True:
-        try:
-            # start working
-            ebd.process()
-        # catch all possible exceptions
-        except Exception:     # pylint: disable=broad-except
-            logging.error(traceback.format_exc())
-
-# check for execution
-if __name__ == "__main__":
-    main()
