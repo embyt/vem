@@ -5,7 +5,6 @@ import time
 
 class EBusDaemon():
     port = None
-    in_sync = False
 
     def __init__(self):
         # init port
@@ -40,17 +39,19 @@ class EBusDaemon():
 
         datadump = ":".join("{:02x}".format(c) for c in data_raw)
         
-        if self._is_message_valid(data_raw, data):
+        # check validity of message
+        if len(data) > 0 and self._is_message_valid(data):
             # message valid
             logging.debug("got: {}".format(datadump))
             return data
         else:
             # broken message
-            logging.warning("invalid data: {}".format(datadump))
+            if len(data) > 0:
+                logging.warning("got: {}".format(datadump))
             return None
 
             
-    def _is_message_valid(self, data_raw, data):
+    def _is_message_valid(self, data):
         # check length of master part
         if len(data) < 6:
             logging.warning("Message too short.")
@@ -74,8 +75,12 @@ class EBusDaemon():
         addr_target = data[1]
         if addr_target == 0xfe:
             # broadcast message received
+            if len(data) != msg_length+6:
+                logging.warning("Illegal size of broadchast message.")
+                return False
             # nothing more to do
             pass
+            
         else:
             # master-master message or master-slave message
             # check ACK
@@ -102,8 +107,8 @@ class EBusDaemon():
         # master-slave message
         # check length of slave message part
         slave_length = data[0]
-        if len(data) != slave_length+2:
-            logging.warning("Slave message size mismatch.")
+        if len(data) != slave_length+3:
+            logging.warning("Slave message size mismatch: {} - {}.".format(len(data), slave_length+3))
             return False
 
         # check CRC of slave part
@@ -124,18 +129,29 @@ class EBusDaemon():
 
     def _derive_crc(self, data):
         crc = 0     # init value
-        CRC_POLYNOM = 0x9b
 
         for byte in data:
-            for _bit in range(8):
-                if crc & 0x80:
-                    polynom = CRC_POLYNOM
-                else:
-                    polynom = 0
-                crc = (crc & ~0x80) << 1
-                if byte & 0x80:
-                    crc = crc | 1
-                crc = crc ^ polynom
-                byte = byte << 1
+            # perform again escaping of message since CRC os derived on excaped data
+            if byte == 0xa9 or byte == 0xaa:
+                # escaping needed
+                crc = self._derive_crc_byte(0xa9, crc)
+                crc = self._derive_crc_byte(byte-0xa9, crc)
+            else:
+                # normal data byte
+                crc = self._derive_crc_byte(byte, crc)
+
+        return crc
+
+    def _derive_crc_byte(self, byte, crc):
+        for _bit in range(8):
+            if crc & 0x80:
+                polynom = 0x9b  # specified CRC polynom
+            else:
+                polynom = 0
+            crc = (crc & ~0x80) << 1
+            if byte & 0x80:
+                crc = crc | 1
+            crc = crc ^ polynom
+            byte = byte << 1
 
         return crc
