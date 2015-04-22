@@ -6,6 +6,7 @@ from setuptools import setup, find_packages
 # needed packages
 REQUIRES = [
     'pyserial >= 2.7',
+    'paho-mqtt',
 ]
 
 setup(

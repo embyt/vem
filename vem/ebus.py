@@ -14,6 +14,10 @@ class EBusDaemon():
         self.port.timeout = 5   # seconds
         self.port.open()
         
+        # special logging for ebus
+        self.logger = logging.getLogger("ebus")
+        self.logger.setLevel(logging.ERROR)
+        
         
     def _read_line(self, timeout = 60):
         """reads an ebus message."""
@@ -42,33 +46,33 @@ class EBusDaemon():
         # check validity of message
         if len(data) > 0 and self._is_message_valid(data):
             # message valid
-            logging.debug("got: {}".format(datadump))
+            self.logger.debug("got: {}".format(datadump))
             return data
         else:
             # broken message
             if len(data) > 0:
-                logging.warning("got: {}".format(datadump))
+                self.logger.warning("got: {}".format(datadump))
             return None
 
             
     def _is_message_valid(self, data):
         # check length of master part
         if len(data) < 6:
-            logging.warning("Message too short.")
+            self.logger.warning("Message too short.")
             return False
         msg_length = data[4]
         if msg_length > 16:
-            logging.warning("Illegal message length value: {:02x}".format(msg_length))
+            self.logger.warning("Illegal message length value: {:02x}".format(msg_length))
             return False
         if len(data) < msg_length+6:
-            logging.warning("Message too short.")
+            self.logger.warning("Message too short.")
             return False
         
         # check CRC of master part
         crc_calc = self._derive_crc(data[:msg_length+5])
         crc_rec = data[msg_length+5]
         if crc_calc != crc_rec:
-            logging.warning("CRC error: {:02x} - {:02x}".format(crc_calc, crc_rec))
+            self.logger.warning("CRC error: {:02x} - {:02x}".format(crc_calc, crc_rec))
             return False
         
         # check message type:
@@ -76,7 +80,7 @@ class EBusDaemon():
         if addr_target == 0xfe:
             # broadcast message received
             if len(data) != msg_length+6:
-                logging.warning("Illegal size of broadchast message.")
+                self.logger.warning("Illegal size of broadchast message.")
                 return False
             # nothing more to do
             pass
@@ -85,11 +89,11 @@ class EBusDaemon():
             # master-master message or master-slave message
             # check ACK
             if len(data) < msg_length+7:
-                logging.warning("Non-broadchast message too short.")
+                self.logger.warning("Non-broadcast message too short.")
                 return False
             ack = data[msg_length+6]
             if ack != 0x00:
-                logging.warning("Negative ACK in message: {:02x}".format(ack))
+                self.logger.warning("Negative ACK in message: {:02x}".format(ack))
                 return False
 
             # determine message type by message length
@@ -108,20 +112,20 @@ class EBusDaemon():
         # check length of slave message part
         slave_length = data[0]
         if len(data) != slave_length+3:
-            logging.warning("Slave message size mismatch: {} - {}.".format(len(data), slave_length+3))
+            self.logger.warning("Slave message size mismatch: {} - {}.".format(len(data), slave_length+3))
             return False
 
         # check CRC of slave part
         crc_calc = self._derive_crc(data[:-2])
         crc_rec = data[-2]
         if crc_calc != crc_rec:
-            logging.warning("slave CRC error: {:02x} - {:02x}".format(crc_calc, crc_rec))
+            self.logger.warning("slave CRC error: {:02x} - {:02x}".format(crc_calc, crc_rec))
             return False
 
         # check ACK
         master_ack = data[-1]
         if master_ack != 0x00:
-            logging.warning("Negative master ACK in message.")
+            self.logger.warning("Negative master ACK in message.")
             return False
 
         # passed all checks
