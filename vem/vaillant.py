@@ -46,6 +46,11 @@ class VaillantMessage():
         if self.msg.cmd & 0xff == 0x04:
             # 0xb5 0x04: Get Data Block
             assert len(self.msg.data) == 1
+            # ensure presense of slave data
+            if self.msg.slave_data is None or len(self.msg.slave_data) == 0:
+                logging.warning("no slave data in 0xb5 0x04 block")
+                return False
+
             if self.msg.data[0] == 0:
                 # status data block: timestamp and outside temperature
                 assert len(self.msg.slave_data) == 0x0a
@@ -89,6 +94,11 @@ class VaillantMessage():
         elif self.msg.cmd & 0xff == 0x11:
             # 0xb5 0x11: Operational Data of Burner Control Unit to Room Control Unit 
             assert len(self.msg.data) == 1
+            # ensure presense of slave data
+            if self.msg.slave_data is None or len(self.msg.slave_data) == 0:
+                logging.warning("no slave data in 0xb5 0x11 block")
+                return False
+
             if self.msg.data[0] == 0x01:
                 assert len(self.msg.slave_data) == 9
                 lead_heatingwater_temp = self.msg.slave_data[0] / 2
@@ -106,7 +116,7 @@ class VaillantMessage():
                         "water temp: {}; ".format(water_temp) +
                         "storage temp: {}".format(storage_water_temp))
                 self.mqtt.publish("vem/heating/enabled", heating_enabled)
-                self.mqtt.publish("vem/heating/water_temp_leat", lead_heatingwater_temp)
+                self.mqtt.publish("vem/heating/water_temp_lead", lead_heatingwater_temp)
                 self.mqtt.publish("vem/heating/water_temp_return", return_heatingwater_temp)
                 self.mqtt.publish("vem/water/enabled", water_enabled)
                 self.mqtt.publish("vem/water/temp", water_temp)
