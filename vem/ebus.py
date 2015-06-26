@@ -9,7 +9,7 @@ class EBusDaemon():
     def __init__(self):
         # init port
         self.port = serial.Serial()
-        self.port.port = '/dev/ttyUSB0'
+        self.port.port = '/dev/ebus'    # or e.g. /dev/ttyUSB0
         self.port.baudrate = 2400
         self.port.timeout = 5   # seconds
         self.port.open()

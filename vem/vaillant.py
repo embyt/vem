@@ -83,7 +83,8 @@ class VaillantMessage():
             # 0xb5 0x05: SetOperationMode
             # this is always 10:fe:b5:05:02:29:00:2c (in summer)
             # this message is sent once each hour
-            logging.info("unknown SetOperationMode message")
+            logging.debug("unknown SetOperationMode message" + str(self))
+            #return False
 
         elif self.msg.cmd & 0xff == 0x10:
             # 0xb5 0x10: Operational Data from Room Controller to Burner Control Unit
