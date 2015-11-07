@@ -54,7 +54,7 @@ class VaillantMessage():
             if self.msg.data[0] == 0:
                 # status data block: timestamp and outside temperature
                 assert len(self.msg.slave_data) == 0x0a
-                # timestmap
+                # timestamp
                 # the timestamp received here seems to be invalid; date is only 0xff
                 # seconds count correctly but the absolute value is just totaly wrong
                 # it seems the burner unit does not hold a valid time
